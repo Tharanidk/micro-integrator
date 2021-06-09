@@ -69,7 +69,7 @@
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Name>${project.artifactId}</Bundle-Name>
                         <Export-Package>
-                            org.wso2.micro.integrator.management.apis.*;version="${project.version}"
+                            org.wso2.micro.integrator.management.apis.*;version="${package.version}"
                         </Export-Package>
                         <Import-Package>
                             org.osgi.service.cm;version="${version.eclipse.equinox.cm}",

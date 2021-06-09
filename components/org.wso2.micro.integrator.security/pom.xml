@@ -139,7 +139,7 @@
                             org.wso2.micro.integrator.security.internal
                         </Private-Package>
                         <Export-Package>
-                            org.wso2.micro.integrator.security.*;version="${project.version}"
+                            org.wso2.micro.integrator.security.*;version="${package.version}"
                         </Export-Package>
                         <Import-Package>
                         </Import-Package>
