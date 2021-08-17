@@ -23,17 +23,20 @@ import org.wso2.micro.core.Constants;
 import org.wso2.micro.integrator.dataservices.common.DBConstants;
 import org.wso2.micro.integrator.dataservices.common.DBConstants.DBSFields;
 import org.wso2.micro.integrator.dataservices.common.DBConstants.FaultCodes;
-import org.wso2.micro.integrator.dataservices.core.DataServiceFault;import org.wso2.micro.integrator.dataservices.core.description.query.Query;import org.wso2.micro.integrator.dataservices.core.description.query.SQLQuery;
+import org.wso2.micro.integrator.dataservices.core.DataServiceFault;
+import org.wso2.micro.integrator.dataservices.core.description.query.Query;
+import org.wso2.micro.integrator.dataservices.core.description.query.SQLQuery;
 
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
-
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
 
 /**
  * A call-query is an expression which leads to the execution of a query.
@@ -99,6 +102,9 @@ public class CallQuery extends OutputElement {
 			if (context != null) {
 				return this.getDataService().getAuthorizationProvider().getUserRoles(context);
 			}
+		} else if ("CURRENT_TIMESTAMP".equals(propName)) {
+			SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+			return format.format(new Date());
 		} else if ("NULL".equals(propName)) {
 			/* represent the special null value (not empty string) */
 			return null;
