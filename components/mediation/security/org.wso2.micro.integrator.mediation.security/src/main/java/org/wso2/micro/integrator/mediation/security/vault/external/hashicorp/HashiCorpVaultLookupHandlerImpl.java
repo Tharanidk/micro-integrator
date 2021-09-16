@@ -76,6 +76,7 @@ public class HashiCorpVaultLookupHandlerImpl implements ExternalVaultLookupHandl
      * Regex for environment variable inside vault config.
      */
     private static final String environmentVariableRegex = "\\$env:(.*)";
+    private static Pattern vaultLookupPattern = Pattern.compile(environmentVariableRegex);
 
     private HashiCorpVaultLookupHandlerImpl() throws ExternalVaultException {
         try {
@@ -318,7 +319,7 @@ public class HashiCorpVaultLookupHandlerImpl implements ExternalVaultLookupHandl
     public String evaluate(Map<String, String> vaultParameters, MessageContext synCtx) throws ExternalVaultException {
         SynapseConfiguration synapseConfiguration = synCtx.getConfiguration();
         Map<String, Object> decryptedCacheMap = synapseConfiguration.getDecryptedCacheMap();
-        Pattern vaultLookupPattern = Pattern.compile(environmentVariableRegex);
+        // Check if parameters configured as environment variable and resolve
         for (Map.Entry<String, String> entry : vaultParameters.entrySet()) {
             Matcher lookupMatcher = vaultLookupPattern.matcher(entry.getValue());
             if (lookupMatcher.matches()) {
@@ -327,8 +328,9 @@ public class HashiCorpVaultLookupHandlerImpl implements ExternalVaultLookupHandl
                 if (StringUtils.isEmpty(resolvedValue)) {
                     log.warn("Evaluated environment variable " + expressionStr +
                             " of the " + name() + " secure vault is empty");
+                } else {
+                    entry.setValue(resolvedValue);
                 }
-                entry.setValue(resolvedValue);
             }
         }
         String pathParameter = vaultParameters.get(HashiCorpVaultConstant.PATH_PARAMETER);

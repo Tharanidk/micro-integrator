@@ -158,6 +158,7 @@ public class DBDeployer extends AbstractDeployer {
 	 * Regex for any vault expression.
 	 */
 	private static final String secureVaultRegex = "\\{(.*?):vault-lookup\\('(.*?)'\\)\\}";
+	private static Pattern vaultLookupPattern = Pattern.compile(secureVaultRegex);
 
 	public ConfigurationContext getConfigContext() {
 		return configCtx;
@@ -1244,19 +1245,13 @@ public class DBDeployer extends AbstractDeployer {
 	 * @return a resolved value
 	 */
 	private String resolveVaultExpressions(String propertyValue) {
-		Pattern vaultLookupPattern = Pattern.compile(secureVaultRegex);
 		Matcher lookupMatcher = vaultLookupPattern.matcher(propertyValue);
 		if (lookupMatcher.matches()) {
-			Value expression = null;
 			//getting the expression with out curly brackets
 			String expressionStr = lookupMatcher.group(0).substring(1, lookupMatcher.group(0).length() - 1);
 			try {
-				expression = new Value(new SynapseXPath(expressionStr));
-			} catch (JaxenException e) {
-				log.error("Error while building the expression : " + expressionStr);
-			}
-			if (expression != null) {
 				String resolvedValue = null;
+				Value expression = new Value(new SynapseXPath(expressionStr));
 				Parameter synapseEnv = axisConfig.getParameter(SynapseConstants.SYNAPSE_ENV);
 				if (synapseEnv != null) {
 					SynapseEnvironment synapseEnvironment = (SynapseEnvironment) synapseEnv.getValue();
@@ -1267,6 +1262,8 @@ public class DBDeployer extends AbstractDeployer {
 				} else {
 					return resolvedValue;
 				}
+			} catch (JaxenException e) {
+				log.error("Error while building the expression : " + expressionStr);
 			}
 		}
 		return propertyValue;
