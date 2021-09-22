@@ -41,7 +41,7 @@ import java.util.List;
 public class StockQuoteClient {
 
     private static final Log log = LogFactory.getLog(StockQuoteClient.class);
-    private final int MAX_TIME = 240000;
+    private final int MAX_TIME = 60000;
 
     private List<Header> httpHeaders = new ArrayList<Header>();
 
