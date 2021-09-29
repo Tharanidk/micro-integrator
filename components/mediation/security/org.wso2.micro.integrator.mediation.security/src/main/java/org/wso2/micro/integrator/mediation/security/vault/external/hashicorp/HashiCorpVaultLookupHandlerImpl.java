@@ -29,7 +29,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.MessageContext;
 import org.apache.synapse.config.SynapseConfiguration;
-import org.wso2.carbon.utils.CarbonUtils;
+import org.wso2.micro.integrator.core.util.MicroIntegratorBaseUtils;
 import org.wso2.micro.integrator.mediation.security.vault.SecureVaultCacheContext;
 import org.wso2.micro.integrator.mediation.security.vault.external.ExternalVaultConfigLoader;
 import org.wso2.micro.integrator.mediation.security.vault.external.ExternalVaultException;
@@ -67,6 +67,10 @@ public class HashiCorpVaultLookupHandlerImpl implements ExternalVaultLookupHandl
     private String secretId;
 
     private String roleId;
+
+    private String ldapUsername;
+
+    private String ldapPassword;
 
     private boolean isAppRolePullAuthentication = true;
 
@@ -111,9 +115,11 @@ public class HashiCorpVaultLookupHandlerImpl implements ExternalVaultLookupHandl
                     + " parameter can not found in " + name() + " secure vault configurations");
         } else if (!parameters.containsKey(HashiCorpVaultConstant.TOKEN_PARAMETER)
                 && (!parameters.containsKey(HashiCorpVaultConstant.ROLE_ID_PARAMETER) ||
-                !parameters.containsKey(HashiCorpVaultConstant.SECRET_ID_PARAMETER))) {
-            throw new ExternalVaultException("Static RootToken parameter or RoleID and SecretID parameters can not " +
-                    "found in " + name() + " secure vault configurations");
+                !parameters.containsKey(HashiCorpVaultConstant.SECRET_ID_PARAMETER))
+                && (!parameters.containsKey(HashiCorpVaultConstant.LDAP_USERNAME_PARAMETER) ||
+                !parameters.containsKey(HashiCorpVaultConstant.LDAP_PASSWORD_PARAMETER))) {
+            throw new ExternalVaultException("Static RootToken parameter or AppRole authentication or " +
+                    "LDAP authentication parameters can not be found in " + name() + " secure vault configurations");
         }
 
         processHashiCorpParameters(parameters);
@@ -125,6 +131,10 @@ public class HashiCorpVaultLookupHandlerImpl implements ExternalVaultLookupHandl
                     && parameters.containsKey(HashiCorpVaultConstant.ROLE_ID_PARAMETER)
                     && parameters.containsKey(HashiCorpVaultConstant.SECRET_ID_PARAMETER)) {
                 authenticateHashiCorpVault();
+            } else if (!parameters.containsKey(HashiCorpVaultConstant.TOKEN_PARAMETER)
+                    && parameters.containsKey(HashiCorpVaultConstant.LDAP_USERNAME_PARAMETER)
+                    && parameters.containsKey(HashiCorpVaultConstant.LDAP_PASSWORD_PARAMETER)) {
+                authWithLDAPHashiCorpVault();
             }
         } catch (VaultException e) {
             if (e.getCause() instanceof RestException) {
@@ -161,6 +171,19 @@ public class HashiCorpVaultLookupHandlerImpl implements ExternalVaultLookupHandl
             vaultConfig.token(currentAuthToken).build();
         }
         return isTokenExpired;
+    }
+
+    /**
+     * Authenticates with LDAP username and password method.
+     */
+    private void authWithLDAPHashiCorpVault() throws VaultException {
+        try {
+            isAppRolePullAuthentication = false;
+            currentAuthToken = vaultConnection.auth().loginByLDAP(ldapUsername, ldapPassword).getAuthClientToken();
+            vaultConfig.token(currentAuthToken).build();
+        } catch (VaultException e) {
+            throw new VaultException("Error while generating a new client token using the LDAP authentication. " + e);
+        }
     }
 
     private boolean isTokenTTLExpired() {
@@ -227,7 +250,7 @@ public class HashiCorpVaultLookupHandlerImpl implements ExternalVaultLookupHandl
             String trustStoreFilePath = parameters.get(HashiCorpVaultConstant.TRUST_STORE_PARAMETER);
             if (trustStoreFilePath.startsWith(HashiCorpVaultConstant.CARBON_HOME_VARIABLE)) {
                 trustStoreFilePath = trustStoreFilePath.replace(HashiCorpVaultConstant.CARBON_HOME_VARIABLE,
-                        CarbonUtils.getCarbonHome());
+                        MicroIntegratorBaseUtils.getCarbonHome());
                 parameters.put(HashiCorpVaultConstant.TRUST_STORE_PARAMETER, trustStoreFilePath);
             }
         }
@@ -236,7 +259,7 @@ public class HashiCorpVaultLookupHandlerImpl implements ExternalVaultLookupHandl
             String keyStoreFilePath = parameters.get(HashiCorpVaultConstant.KEY_STORE_PARAMETER);
             if (keyStoreFilePath.startsWith(HashiCorpVaultConstant.CARBON_HOME_VARIABLE)) {
                 keyStoreFilePath = keyStoreFilePath.replace(HashiCorpVaultConstant.CARBON_HOME_VARIABLE,
-                        CarbonUtils.getCarbonHome());
+                        MicroIntegratorBaseUtils.getCarbonHome());
                 parameters.put(HashiCorpVaultConstant.KEY_STORE_PARAMETER, keyStoreFilePath);
             }
         }
@@ -249,6 +272,15 @@ public class HashiCorpVaultLookupHandlerImpl implements ExternalVaultLookupHandl
         // set current roleId
         if (parameters.containsKey(HashiCorpVaultConstant.ROLE_ID_PARAMETER)) {
             roleId = parameters.get(HashiCorpVaultConstant.ROLE_ID_PARAMETER);
+        }
+
+        // set current ldapUsername
+        if (parameters.containsKey(HashiCorpVaultConstant.LDAP_USERNAME_PARAMETER)) {
+            ldapUsername = parameters.get(HashiCorpVaultConstant.LDAP_USERNAME_PARAMETER);
+        }
+        // set current ldapPassword
+        if (parameters.containsKey(HashiCorpVaultConstant.LDAP_PASSWORD_PARAMETER)) {
+            ldapPassword = parameters.get(HashiCorpVaultConstant.LDAP_PASSWORD_PARAMETER);
         }
     }
 
@@ -411,7 +443,8 @@ public class HashiCorpVaultLookupHandlerImpl implements ExternalVaultLookupHandl
             log.warn("Cannot find a vault secret from the HashiCorp vault for, "
                     + (namespace != null ? "Namespace: " + namespace + ", " : "")
                     + "Path: " + pathParameter + ", Field: " + fieldParameter);
-            return null;
+            // return an empty string value if no secret found for the given parameters
+            return "";
         }
 
         if (decryptedValue.isEmpty()) {
