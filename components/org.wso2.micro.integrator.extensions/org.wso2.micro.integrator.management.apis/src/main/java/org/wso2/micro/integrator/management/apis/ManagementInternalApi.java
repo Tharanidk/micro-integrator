@@ -36,6 +36,7 @@ import static org.wso2.micro.integrator.management.apis.Constants.PREFIX_APIS;
 import static org.wso2.micro.integrator.management.apis.Constants.PREFIX_CARBON_APPS;
 import static org.wso2.micro.integrator.management.apis.Constants.PREFIX_CONNECTORS;
 import static org.wso2.micro.integrator.management.apis.Constants.PREFIX_DATA_SERVICES;
+import static org.wso2.micro.integrator.management.apis.Constants.PREFIX_DATA_SOURCES;
 import static org.wso2.micro.integrator.management.apis.Constants.PREFIX_ENDPOINTS;
 import static org.wso2.micro.integrator.management.apis.Constants.PREFIX_EXTERNAL_VAULTS;
 import static org.wso2.micro.integrator.management.apis.Constants.PREFIX_INBOUND_ENDPOINTS;
@@ -92,6 +93,7 @@ public class ManagementInternalApi implements InternalAPI {
                                                  new RequestCountResource()));
         resourcesList.add(new ExternalVaultResource(PREFIX_EXTERNAL_VAULTS
                 + PATH_PARAM_EXTERNAL_VAULT_NAME));
+        resourcesList.add(new ApiResourceAdapter(PREFIX_DATA_SOURCES, new DataSourceResource()));
 
         resources = new APIResource[resourcesList.size()];
         resources = resourcesList.toArray(resources);
