@@ -69,7 +69,8 @@ public class EI5523TestJsonStreamAfterAggregateMediator extends ESBIntegrationTe
         String response = HttpURLConnectionClient
                 .sendPostRequestAndReadResponse(data, new URL(serviceUrl), writer, "application/json");
         assertTrue(!response.isEmpty());
-        boolean logFound = carbonLogReader
+        boolean logFound;
+        logFound = carbonLogReader
                 .checkForLog("*** Payload After Aggregate *** = {\"accounts\":[{\"accountNo\":\"01001\"," +
                         "\"customerNo\":\"0001\",\"permissions\":[\"test123\",\"test_FULL\"]," +
                         "\"accountType\":\"83738383\",\"dateOpened\":\"2017-01-02T00:00:00.000+03:00\"," +
@@ -77,8 +78,17 @@ public class EI5523TestJsonStreamAfterAggregateMediator extends ESBIntegrationTe
                         "\"customerNo\":\"0002\",\"permissions\":[\"test123\",\"test_FULL\"]," +
                         "\"accountType\":\"83738383\",\"dateOpened\":\"2017-01-02T00:00:00.000+03:00\"," +
                         "\"closingDate\":\"1970-01-01T00:00:00.000+03:00\"}]}", DEFAULT_TIMEOUT);
-        Assert.assertTrue(logFound, "Custom log not found. Error checking the Json Stream after Aggregate.");
 
+        if (!logFound) {
+            logFound = carbonLogReader.checkForLog("{\"accounts\":[{\"accountNo\":\"01002\"," +
+                    "\"customerNo\":\"0002\",\"permissions\":[\"test123\",\"test_FULL\"]," +
+                    "\"accountType\":\"83738383\",\"dateOpened\":\"2017-01-02T00:00:00.000+03:00\"," +
+                    "\"closingDate\":\"1970-01-01T00:00:00.000+03:00\"},{\"accountNo\":\"01001\"," +
+                    "\"customerNo\":\"0001\",\"permissions\":[\"test123\",\"test_FULL\"]," +
+                    "\"accountType\":\"83738383\",\"dateOpened\":\"2017-01-02T00:00:00.000+03:00\"," +
+                    "\"closingDate\":\"1970-01-01T00:00:00.000+03:00\"}]}\n", DEFAULT_TIMEOUT);
+        }
+        Assert.assertTrue(logFound, "Custom log not found. Error checking the Json Stream after Aggregate.");
         carbonLogReader.stop();
     }
 
