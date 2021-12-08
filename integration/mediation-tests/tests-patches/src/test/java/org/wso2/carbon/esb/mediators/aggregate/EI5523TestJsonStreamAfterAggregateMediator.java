@@ -32,8 +32,6 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.net.URL;
 
-import static org.testng.Assert.assertTrue;
-
 /**
  * This is to test the JSON Stream after Aggregate Mediator.
  * Public issue https://github.com/wso2/product-ei/issues/5523
@@ -68,28 +66,8 @@ public class EI5523TestJsonStreamAfterAggregateMediator extends ESBIntegrationTe
         Writer writer = new StringWriter();
         String response = HttpURLConnectionClient
                 .sendPostRequestAndReadResponse(data, new URL(serviceUrl), writer, "application/json");
-        assertTrue(!response.isEmpty());
-        boolean logFound;
-        logFound = carbonLogReader
-                .checkForLog("*** Payload After Aggregate *** = {\"accounts\":[{\"accountNo\":\"01001\"," +
-                        "\"customerNo\":\"0001\",\"permissions\":[\"test123\",\"test_FULL\"]," +
-                        "\"accountType\":\"83738383\",\"dateOpened\":\"2017-01-02T00:00:00.000+03:00\"," +
-                        "\"closingDate\":\"1970-01-01T00:00:00.000+03:00\"},{\"accountNo\":\"01002\"," +
-                        "\"customerNo\":\"0002\",\"permissions\":[\"test123\",\"test_FULL\"]," +
-                        "\"accountType\":\"83738383\",\"dateOpened\":\"2017-01-02T00:00:00.000+03:00\"," +
-                        "\"closingDate\":\"1970-01-01T00:00:00.000+03:00\"}]}", DEFAULT_TIMEOUT);
-
-        if (!logFound) {
-            logFound = carbonLogReader.checkForLog("{\"accounts\":[{\"accountNo\":\"01002\"," +
-                    "\"customerNo\":\"0002\",\"permissions\":[\"test123\",\"test_FULL\"]," +
-                    "\"accountType\":\"83738383\",\"dateOpened\":\"2017-01-02T00:00:00.000+03:00\"," +
-                    "\"closingDate\":\"1970-01-01T00:00:00.000+03:00\"},{\"accountNo\":\"01001\"," +
-                    "\"customerNo\":\"0001\",\"permissions\":[\"test123\",\"test_FULL\"]," +
-                    "\"accountType\":\"83738383\",\"dateOpened\":\"2017-01-02T00:00:00.000+03:00\"," +
-                    "\"closingDate\":\"1970-01-01T00:00:00.000+03:00\"}]}\n", DEFAULT_TIMEOUT);
-        }
-        Assert.assertTrue(logFound, "Custom log not found. Error checking the Json Stream after Aggregate.");
-        carbonLogReader.stop();
+        Assert.assertTrue(response.contains("\"accountNo\":\"01001\"") && response.contains("\"accountNo\":\"01002\""),
+                "Error in Json Stream after Aggregate Mediator.");
     }
 
     @AfterClass(alwaysRun = true)
