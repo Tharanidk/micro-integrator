@@ -130,4 +130,6 @@ public class Constants {
 
     // toml properties
     public static String FILE_BASED_USER_STORE_ENABLE = "internal_apis.file_user_store.enable";
+
+    static final String SERVICE_PID = "service.pid";
 }
