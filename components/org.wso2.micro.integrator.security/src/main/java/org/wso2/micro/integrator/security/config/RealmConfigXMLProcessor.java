@@ -32,6 +32,7 @@ import org.wso2.micro.integrator.security.user.api.RealmConfiguration;
 import org.wso2.micro.integrator.security.user.core.UserCoreConstants;
 import org.wso2.micro.integrator.security.user.core.UserStoreException;
 import org.wso2.micro.integrator.security.user.core.util.UserCoreUtil;
+import org.wso2.micro.integrator.security.vault.SecureVaultException;
 import org.wso2.securevault.SecretResolver;
 import org.wso2.securevault.SecretResolverFactory;
 import org.wso2.securevault.commons.MiscellaneousUtil;
@@ -388,14 +389,12 @@ public class RealmConfigXMLProcessor {
             OMElement propElem = (OMElement) ite.next();
             propName = propElem.getAttributeValue(new QName("name"));
             propValue = propElem.getText();
-            if (secretResolver != null && secretResolver.isInitialized()) {
-                if (secretResolver.isTokenProtected("UserManager.Configuration.Property." + propName)) {
-                    propValue = secretResolver.resolve("UserManager.Configuration.Property." + propName);
-                }
-
-                if (secretResolver.isTokenProtected("UserStoreManager.Property." + propName)) {
-                    propValue = secretResolver.resolve("UserStoreManager.Property." + propName);
-                }
+            if (secretResolver == null) {
+                throw new SecureVaultException("Cannot resolve secret password because secret resolver " +
+                        "is null or not initialized");
+            }
+            if (secretResolver.isInitialized()) {
+                propValue = MiscellaneousUtil.resolve(propValue, this.secretResolver);
             }
         }
 
