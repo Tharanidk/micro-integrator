@@ -18,16 +18,22 @@
  */
 package org.wso2.carbon.esb.websocket.inbound.transport.test;
 
+import org.apache.http.HttpResponse;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.wso2.carbon.esb.websocket.client.WebSocketTestClient;
 import org.wso2.carbon.esb.websocket.server.WebSocketServer;
+import org.wso2.esb.integration.common.utils.CarbonLogReader;
 import org.wso2.esb.integration.common.utils.ESBIntegrationTest;
+import org.wso2.esb.integration.common.utils.clients.SimpleHttpClient;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 
 /**
  * Test the wes socket transport functionality with inbound endpoint.
@@ -36,13 +42,26 @@ public class WebSocketInboundTestCase extends ESBIntegrationTest {
 
     private WebSocketServer webSocketServer;
     private WebSocketTestClient webSocketTestClient;
+    private CarbonLogReader carbonLogReader;
 
     @BeforeClass(alwaysRun = true)
     public void setEnvironment() throws Exception {
         webSocketServer = new WebSocketServer(7474);
         webSocketServer.run();
         super.init();
+        carbonLogReader = new CarbonLogReader();
+        carbonLogReader.start();
         loadESBConfigurationFromClasspath("/artifacts/ESB/websocket/synapse-websocket-inbound.xml");
+    }
+
+    @Test(groups = "wso2.esb", description = "Web Socket heath check API test")
+    public void webSocketInboundHeathCheckAPITest() throws Exception {
+        carbonLogReader.clearLogs();
+        SimpleHttpClient httpClient = new SimpleHttpClient();
+        HttpResponse response = httpClient.doGet("http://localhost:9078/health", null);
+        assertEquals(response.getStatusLine().getStatusCode(), 200);
+        assertFalse(carbonLogReader.checkForLog("Endpoint not found for port : 9078", 10),
+                "Unwanted error log when executing health-check API on the WebSocket port");
     }
 
     @Test(groups = "wso2.esb", description = "Web Socket transport test", timeOut = 60000)
@@ -74,6 +93,6 @@ public class WebSocketInboundTestCase extends ESBIntegrationTest {
                 webSocketServer.stop();
             }
         }
-
+        carbonLogReader.stop();
     }
 }
