@@ -24,7 +24,11 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
@@ -49,6 +53,7 @@ import org.apache.axis2.context.ServiceContext;
 import org.apache.axis2.description.InOutAxisOperation;
 import org.apache.axis2.transport.TransportUtils;
 import org.apache.commons.io.input.AutoCloseInputStream;
+import org.apache.http.HttpHeaders;
 import org.apache.log4j.Logger;
 import org.apache.synapse.MessageContext;
 import org.apache.synapse.SynapseConstants;
@@ -101,6 +106,7 @@ public class InboundWebsocketSourceHandler extends ChannelInboundHandlerAdapter 
     private ArrayList<AbstractSubprotocolHandler> subprotocolHandlers;
     private String defaultContentType;
     private int portOffset;
+    private boolean isHealthCheckCall = false;
 
     private InboundApiHandler inboundApiHandler = new InboundApiHandler();
     private static final AttributeKey<Map<String, Object>> WSO2_PROPERTIES = AttributeKey.valueOf("WSO2_PROPERTIES");
@@ -147,6 +153,9 @@ public class InboundWebsocketSourceHandler extends ChannelInboundHandlerAdapter 
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        if (isHealthCheckCall) {
+            return;
+        }
         String endpointName = WebsocketEndpointManager.getInstance().getEndpointName(port, tenantDomain);
         if (endpointName == null) {
             handleException("Endpoint not found for port : " + port + "" + " tenant domain : " + tenantDomain);
@@ -167,6 +176,16 @@ public class InboundWebsocketSourceHandler extends ChannelInboundHandlerAdapter 
         if (log.isDebugEnabled()) {
             WebsocketLogUtil.printHeaders(log, req, ctx);
         }
+
+        // This block is for the health check of the ports 8099 and 9099
+        if (!req.headers().contains(HttpHeaders.UPGRADE) && req.uri().equals("/health")) {
+            isHealthCheckCall = true;
+            FullHttpResponse httpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+            httpResponse.headers().set("content-length", httpResponse.content().readableBytes());
+            ctx.writeAndFlush(httpResponse);
+            return;
+        }
+
         WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(
                 getWebSocketLocation(req), SubprotocolBuilderUtil.buildSubprotocolString(contentTypes, otherSubprotocols), true);
         handshaker = wsFactory.newHandshaker(req);
