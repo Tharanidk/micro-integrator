@@ -110,6 +110,8 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 
+import static org.apache.commons.codec.binary.Base64.decodeBase64;
+
 /**
  * Utility class for data services based operations.
  */
@@ -603,7 +605,10 @@ public class DBUtils {
             OMElement e = (OMElement) regEntry;
             resolvedValue = e.toString();
         } else if (regEntry instanceof OMText) {
-            resolvedValue = ((OMText) regEntry).getText();
+            String rawValue = ((OMText) regEntry).getText();
+            byte[] decodedBytes;
+            decodedBytes = decodeBase64(rawValue.getBytes(StandardCharsets.UTF_8));
+            resolvedValue = new String(decodedBytes, StandardCharsets.UTF_8);
         } else if (regEntry instanceof String) {
             resolvedValue = (String) regEntry;
         }
