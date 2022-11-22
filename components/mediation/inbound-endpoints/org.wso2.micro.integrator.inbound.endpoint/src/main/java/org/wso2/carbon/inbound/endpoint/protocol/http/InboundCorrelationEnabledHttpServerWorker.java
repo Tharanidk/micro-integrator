@@ -51,7 +51,11 @@ public class InboundCorrelationEnabledHttpServerWorker extends InboundHttpServer
     public void run() {
         // Reset the correlation id MDC thread local value.
         MDC.remove(CorrelationConstants.CORRELATION_MDC_PROPERTY);
-        MDC.put(CorrelationConstants.CORRELATION_MDC_PROPERTY, correlationId);
+        /**
+         * Casting correlationId to Object type to avoid NoSuchMethodError as MDC.put() requires an object as the value.
+         */
+        Object correlationIdObj = new String(correlationId);
+        MDC.put(CorrelationConstants.CORRELATION_MDC_PROPERTY, correlationIdObj);
         // Log the time taken to switch from the previous thread to this thread
         correlationLog.info((System.currentTimeMillis() - initiationTimestamp) + "|Thread switch latency");
         super.run();
