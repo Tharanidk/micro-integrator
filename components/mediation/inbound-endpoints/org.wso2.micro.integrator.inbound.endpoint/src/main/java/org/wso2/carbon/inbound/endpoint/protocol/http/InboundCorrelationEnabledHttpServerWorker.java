@@ -20,7 +20,7 @@ package org.wso2.carbon.inbound.endpoint.protocol.http;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.log4j.MDC;
+import org.apache.logging.log4j.ThreadContext;
 import org.apache.synapse.commons.CorrelationConstants;
 import org.apache.synapse.transport.passthru.PassThroughConstants;
 import org.apache.synapse.transport.passthru.SourceRequest;
@@ -50,12 +50,8 @@ public class InboundCorrelationEnabledHttpServerWorker extends InboundHttpServer
     @Override
     public void run() {
         // Reset the correlation id MDC thread local value.
-        MDC.remove(CorrelationConstants.CORRELATION_MDC_PROPERTY);
-        /**
-         * Casting correlationId to Object type to avoid NoSuchMethodError as MDC.put() requires an object as the value.
-         */
-        Object correlationIdObj = new String(correlationId);
-        MDC.put(CorrelationConstants.CORRELATION_MDC_PROPERTY, correlationIdObj);
+        ThreadContext.remove(CorrelationConstants.CORRELATION_MDC_PROPERTY);
+        ThreadContext.put(CorrelationConstants.CORRELATION_MDC_PROPERTY, correlationId);
         // Log the time taken to switch from the previous thread to this thread
         correlationLog.info((System.currentTimeMillis() - initiationTimestamp) + "|Thread switch latency");
         super.run();
