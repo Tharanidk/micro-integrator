@@ -146,8 +146,10 @@ public class CappDeployer extends AbstractDeployer {
 
         String targetCAppPath = cAppDirectory + File.separator + cAppName;
 
+        CarbonApplication currentApp = null;
+
         try {
-            CarbonApplication currentApp = buildCarbonApplication(targetCAppPath, cAppName, axisConfig);
+            currentApp = buildCarbonApplication(targetCAppPath, cAppName, axisConfig);
 
             if (currentApp != null) {
                 // deploy sub artifacts of this cApp
@@ -185,8 +187,11 @@ public class CappDeployer extends AbstractDeployer {
                 ArtifactDeploymentListener.addToDeployedArtifactsQueue(deployedCarbonApp);
             }
         } catch (DeploymentException e) {
-            faultyCapps.add(cAppName);
             log.error("Error occurred while deploying the Carbon application: " + targetCAppPath, e);
+            this.undeployCarbonApp(currentApp, this.axisConfig);
+            // Validate synapse config to remove half added swagger definitions in the case of a faulty CAPP.
+            SynapseConfigUtils.getSynapseConfiguration(SUPER_TENANT_DOMAIN_NAME).validateSwaggerTable();
+            faultyCapps.add(cAppName);
         }
     }
 
