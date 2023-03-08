@@ -108,7 +108,6 @@ public class UsersResource extends UserResource {
         return true;
     }
 
-    @Override
     protected JSONObject handleGet(MessageContext messageContext) throws UserStoreException {
         String searchPattern = Utils.getQueryParameter(messageContext, PATTERN);
         if (Objects.isNull(searchPattern)) {
