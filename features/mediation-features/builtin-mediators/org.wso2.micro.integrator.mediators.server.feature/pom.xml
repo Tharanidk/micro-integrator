@@ -91,6 +91,8 @@
                                 <importBundleDef>rhino.wso2:js</importBundleDef>
                                 <importBundleDef>org.apache.velocity:velocity</importBundleDef>
                                 <importBundleDef>org.apache.bsf.wso2:bsf-all</importBundleDef>
+                                <importBundleDef>com.google.guava:guava:${google.guava.version}</importBundleDef>
+                                <importBundleDef>com.google.guava:failureaccess:${google.guava.failureaccess.version}</importBundleDef>
                             </importBundles>
                             <importFeatures>
                                 <importFeatureDef>org.apache.synapse.wso2:${synapse.version}</importFeatureDef>
