@@ -97,7 +97,7 @@ public class MediatorCacheInvalidator implements MediatorCacheInvalidatorMBean {
     }
 
     /**
-     * This method sets the tenant ID
+     * This method sets the tenant ID.
      *
      * @param tenantId integer value to be set.
      */
