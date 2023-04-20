@@ -117,6 +117,9 @@ public class Constants {
     public static final String ROLES = "roles";
     public static final String ROLE = "role";
     public static final String PASSWORD = "password";
+    public static final String NEW_PASSWORD = "NewPassword";
+    public static final String CONFIRM_PASSWORD = "ConfirmPassword";
+    public static final String OLD_PASSWORD = "OldPassword";
     public static final String IS_ADMIN = "isAdmin";
     public static final String PATTERN = "pattern";
     public static final String PASSWORD_MASKED_VALUE = "*****";

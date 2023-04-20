@@ -17,9 +17,11 @@
  */
 package org.wso2.micro.integrator.management.apis;
 
+import com.google.gson.JsonObject;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.MessageContext;
+import org.apache.synapse.commons.json.JsonUtil;
 import org.apache.synapse.config.SynapseConfiguration;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -27,10 +29,12 @@ import org.wso2.micro.core.util.StringUtils;
 import org.wso2.micro.integrator.management.apis.security.handler.SecurityUtils;
 import org.wso2.micro.integrator.security.user.api.UserStoreException;
 import org.wso2.micro.integrator.security.user.api.UserStoreManager;
+import org.wso2.micro.integrator.security.user.core.multiplecredentials.UserAlreadyExistsException;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -44,6 +48,9 @@ import static org.wso2.micro.integrator.management.apis.Constants.ROLES;
 import static org.wso2.micro.integrator.management.apis.Constants.STATUS;
 import static org.wso2.micro.integrator.management.apis.Constants.USERNAME_PROPERTY;
 import static org.wso2.micro.integrator.management.apis.Constants.USER_ID;
+import static org.wso2.micro.integrator.management.apis.Constants.NEW_PASSWORD;
+import static org.wso2.micro.integrator.management.apis.Constants.CONFIRM_PASSWORD;
+import static org.wso2.micro.integrator.management.apis.Constants.OLD_PASSWORD;
 
 
 /**
@@ -62,6 +69,7 @@ public class UserResourceBase {
         methods = new HashSet<>();
         methods.add(Constants.HTTP_GET);
         methods.add(Constants.HTTP_DELETE);
+        methods.add(Constants.HTTP_METHOD_PATCH);
     }
 
 
@@ -92,9 +100,13 @@ public class UserResourceBase {
                     response = handleDelete(messageContext, isEncoded);
                     break;
                 }
+                case Constants.HTTP_METHOD_PATCH:{
+                    response = handlePatch(messageContext, axis2MessageContext, isEncoded);
+                    break;
+                }
                 default: {
-                    response = Utils.createJsonError("Unsupported HTTP method, " + httpMethod + ". Only GET and "
-                                    + "DELETE methods are supported",
+                    response = Utils.createJsonError("Unsupported HTTP method, " + httpMethod + ". Only GET ," +
+                                    " DELETE and PATCH methods are supported",
                             axis2MessageContext, BAD_REQUEST);
                     break;
                 }
@@ -159,6 +171,70 @@ public class UserResourceBase {
         JSONObject jsonBody = new JSONObject();
         jsonBody.put(USER_ID, user);
         jsonBody.put(STATUS, "Deleted");
+        return jsonBody;
+    }
+
+    protected JSONObject handlePatch(MessageContext messageContext,
+            org.apache.axis2.context.MessageContext axis2MessageContext, Boolean isEncoded)
+            throws UserStoreException, IOException, ResourceNotFoundException {
+        String domain = Utils.getQueryParameter(messageContext, DOMAIN);
+        if (isEncoded && !StringUtils.isEmpty(domain)) {
+            domain = urlDecode(domain);
+        }
+        String user = getUserFromPathParam(messageContext, domain, isEncoded);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Request received to update user credentials: " + user);
+        }
+        String userName = Utils.getStringPropertyFromMessageContext(messageContext, USERNAME_PROPERTY);
+        if (Objects.isNull(userName)) {
+            LOG.warn(
+                    "Update a user without authenticating/authorizing the request sender. Adding "
+                            + "authentication and authorization handlers is recommended.");
+        }
+        if (!JsonUtil.hasAJsonPayload(axis2MessageContext)) {
+            return Utils.createJsonErrorObject("JSON payload is missing");
+        }
+        JsonObject payload = Utils.getJsonPayload(axis2MessageContext);
+
+        if (payload.has(NEW_PASSWORD) && payload.has(CONFIRM_PASSWORD)) {
+            String NewPassword = payload.get(NEW_PASSWORD).getAsString();
+            String ConfirmPassword = payload.get(CONFIRM_PASSWORD).getAsString();
+            String OldPassword = payload.get(OLD_PASSWORD).getAsString();
+            if (NewPassword.equals(ConfirmPassword)) {
+                UserStoreManager userStoreManager = Utils.getUserStore(domain);
+                String[] roles = userStoreManager.getRoleListOfUser(user);
+                try {
+                    synchronized (this) {
+                        if (userName.equals(user)) {
+                            userStoreManager.updateCredential(user, NewPassword, OldPassword);
+                        } else {
+                            if (userName.equals("admin")) {
+                                userStoreManager.updateCredentialByAdmin(user, NewPassword);
+                            } else {
+                                if (!Arrays.asList(roles).contains("admin")) {
+                                    userStoreManager.updateCredentialByAdmin(user, NewPassword);
+                                } else {
+                                    throw new IOException(
+                                            "Only super admin user can update the credentials of other admins");
+                                }
+                            }
+                        }
+                    }
+                } catch (UserStoreException e) {
+                    throw new UserStoreException("Error occurred while updating the credentials of the user : "
+                            + user, e);
+                }
+            } else {
+                throw new IOException(NEW_PASSWORD + " and " + CONFIRM_PASSWORD + " does not matches " + "payload.");
+            }
+        } else {
+            throw new IOException(
+                    "Missing one or more of the fields, '" + NEW_PASSWORD + "', '"
+                            + CONFIRM_PASSWORD + "' in the " + "payload.");
+        }
+        JSONObject jsonBody = new JSONObject();
+        jsonBody.put(USER_ID, user);
+        jsonBody.put(STATUS, "Password updated");
         return jsonBody;
     }
 
